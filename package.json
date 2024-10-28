@@ -1,0 +1,36 @@
+{
+  "name": "russound-rio",
+  "version": "1.0.0",
+  "description": "Javascript library to connect to Russound RIO MCA controllers",
+  "main": "index.js",
+  "type": "module",
+  "dependencies": {
+    "async": "^3.2.6",
+    "events": "^3.3.0",
+    "net": "^1.0.2",
+    "promise-socket": "^8.0.0",
+    "timers-promises": "^1.0.1"
+  },
+  "devDependencies": {
+    "@types/async": "^3.2.24",
+    "@types/node": "^22.8.1"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/michaelpettorosso/russound-rio.git"
+  },
+  "keywords": [
+    "RIO",
+    "RUSSOUND",
+    "MCA-66"
+  ],
+  "author": "Michael Pettorosso",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/michaelpettorosso/russound-rio/issues"
+  },
+  "homepage": "https://github.com/michaelpettorosso/russound-rio#readme"
+}

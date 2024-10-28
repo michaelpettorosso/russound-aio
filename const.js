@@ -1,0 +1,133 @@
+// Asynchronous JavaScript client for Russound RIO.
+
+export const MINIMUM_API_SUPPORT = "1.05.00";
+
+export const DEFAULT_PORT = 9621;
+
+export const RECONNECT_DELAY = 5000;
+export const TIMEOUT = 5000;
+
+export const KEEP_ALIVE_INTERVAL = 60000;
+
+export const MAX_SOURCE = 17;
+
+export const MAX_RNET_CONTROLLERS = 1;
+
+export const RESPONSE_REGEX = /(?:(\w+(?:\[\d+])?(?:\.\w+(?:\[\d+])?)*)\.)?(\w+)="([^"]*)"/;
+
+export class FeatureFlag {
+  static SUPPORT_POWER_MGMT = 1;
+  static SUPPORT_ZONE_PARAMETERS = 2;
+  static SUPPORT_SOURCE_PARAMETERS = 3;
+  static SUPPORT_CONTROLLER_PARAMETERS = 4;
+  static SUPPORT_SYSTEM_PARAMETERS = 5;
+  static SUPPORT_DMS_3_1_MM = 6;
+  static EVENT_KEY_CODE = 7;
+  static PROPERTY_IP_ADDRESS = 8;
+  static SUPPORT_SHUFFLE = 9;
+  static COMMAND_MM_CLOSE = 10;
+  static SUPPORT_PAGE_ZONE = 11;
+  static SUPPORT_REPEAT = 12;
+  static PROPERTY_CTRL_TYPE = 13;
+  static PROPERTY_SYS_LANG = 14;
+  static NOTIFICATION_SYS_LANG = 15;
+  static SUPPORT_MM_LONG_LIST = 16;
+  static TEMPLATES_MM_SCREEN = 17;
+  static PROPERTY_SLEEP_TIME_REMAINING = 18;
+  static SUPPORT_PRESETS_BANKS = 19;
+  static SUPPORT_FAVORITES = 20;
+  static SUPPORT_ZONE_SOURCE_EXCLUSION = 21;
+  static SUPPORT_FORMS = 22;
+  static SUPPORT_MEDIA_RATING = 23;
+  static SUPPORT_HIDDEN_ATTRIBUTE = 24;
+  static SUPPORT_SYSTEM_FAVORITE_RENAME = 25;
+  static COMMANDS_ZONE_MUTE_OFF_ON = 26;
+  static SUPPORT_WATCH_FAVORITES = 27;
+  static SUPPORT_SYSTEM = 28;
+  static SUPPORT_DEVICE_GROUPING = 29;
+  static SUPPORT_ALARM = 30;
+  static NOTIFICATION_ALARM_ZONE_WATCH = 31;
+  static PROPERTY_FIRMWARE_VERSION = 32;
+  static SUPPORT_MBX_DISPLAY_ITEMS = 33;
+  static PROPERTY_PLAY_STATUS = 34;
+  static PROPERTY_AVAILABLE_CONTROLS = 35;
+  static PROPERTY_SAMPLE_RATE = 36;
+  static PROPERTY_BIT_RATE = 37;
+  static PROPERTY_BIT_DEPTH = 38;
+  static PROPERTY_PLAY_TIME = 39;
+  static PROPERTY_TRACK_TIME = 40;
+  static PROPERTY_SET_SEEK_TIME = 41;
+  static SUPPORT_MM_CONTEXT_MENU = 42;
+  static PROPERTY_SLEEP_TIME_DEFAULT = 43;
+  static PROPERTY_SUPPORT_SLEEP_TIME = 44;
+  static EVENT_REBOOT = 45;
+  static SUPPORT_SYSTEM_FAVORITE_SOURCE = 46;
+  static ATTRIBUTE_USER_LOGIN = 47;
+}
+
+export const FLAGS_BY_VERSION = {
+  "1.01.00": [
+    FeatureFlag.SUPPORT_POWER_MGMT,
+  ],
+  "1.02.00": [
+    FeatureFlag.SUPPORT_ZONE_PARAMETERS,
+    FeatureFlag.SUPPORT_SOURCE_PARAMETERS,
+    FeatureFlag.SUPPORT_CONTROLLER_PARAMETERS,
+    FeatureFlag.SUPPORT_SYSTEM_PARAMETERS,
+  ],
+  "1.03.00": [
+    FeatureFlag.SUPPORT_DMS_3_1_MM,
+    FeatureFlag.EVENT_KEY_CODE,
+    FeatureFlag.PROPERTY_IP_ADDRESS,
+  ],
+  "1.04.00": [
+    FeatureFlag.SUPPORT_SHUFFLE,
+    FeatureFlag.COMMAND_MM_CLOSE,
+    FeatureFlag.SUPPORT_PAGE_ZONE,
+  ],
+  "1.05.00": [
+    FeatureFlag.SUPPORT_REPEAT,
+    FeatureFlag.PROPERTY_CTRL_TYPE,
+    FeatureFlag.PROPERTY_SYS_LANG,
+  ],
+  "1.06.00": [
+    FeatureFlag.NOTIFICATION_SYS_LANG,
+    FeatureFlag.SUPPORT_MM_LONG_LIST,
+    FeatureFlag.TEMPLATES_MM_SCREEN,
+  ],
+  "1.07.00": [
+    FeatureFlag.PROPERTY_SLEEP_TIME_REMAINING,
+    FeatureFlag.SUPPORT_PRESETS_BANKS,
+    FeatureFlag.SUPPORT_FAVORITES,
+    FeatureFlag.SUPPORT_ZONE_SOURCE_EXCLUSION,
+    FeatureFlag.SUPPORT_FORMS,
+    FeatureFlag.SUPPORT_MEDIA_RATING,
+    FeatureFlag.SUPPORT_HIDDEN_ATTRIBUTE,
+  ],
+  "1.08.00": [FeatureFlag.SUPPORT_SYSTEM_FAVORITE_RENAME],
+  "1.09.00": [
+    FeatureFlag.COMMANDS_ZONE_MUTE_OFF_ON,
+  ],
+  "1.11.00": [
+    FeatureFlag.SUPPORT_WATCH_FAVORITES,
+  ],
+  "1.12.00": [
+    FeatureFlag.SUPPORT_SYSTEM,
+    FeatureFlag.SUPPORT_DEVICE_GROUPING,
+    FeatureFlag.SUPPORT_ALARM,
+  ],
+  "1.12.01": [
+    FeatureFlag.NOTIFICATION_ALARM_ZONE_WATCH,
+  ],
+  "1.12.02": [
+    FeatureFlag.PROPERTY_FIRMWARE_VERSION,
+  ],
+  "1.14.00": [
+    FeatureFlag.SUPPORT_MBX_DISPLAY_ITEMS,
+    FeatureFlag.PROPERTY_PLAY_STATUS,
+    FeatureFlag.PROPERTY_AVAILABLE_CONTROLS,
+    FeatureFlag.PROPERTY_SAMPLE_RATE,
+    FeatureFlag.PROPERTY_BIT_RATE
+  ]
+};
+
