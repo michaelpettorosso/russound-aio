@@ -1,37 +1,14 @@
 // Asynchronous JavaScript client for Russound RIO.
+const EventEmitter = require('events');
+const TimerPromises = require('timers-promises');
+const Constants = require('./const');
+const Models = require('./models');
+const Utils = require('./util');
+const Exceptions = require('./exceptions');
+const Logger = require('./logger');
 
-import { EventEmitter } from 'events';
-import { setTimeout as delay } from 'timers-promises';
-import { 
-    FLAGS_BY_VERSION,
-    MAX_SOURCE,
-    MINIMUM_API_SUPPORT,
-    FeatureFlag,
-    MAX_RNET_CONTROLLERS,
-    RESPONSE_REGEX,
-    KEEP_ALIVE_INTERVAL,
-    TIMEOUT,
- } from './const.js';
-
-
-import {
-    RussoundMessage,
-    CallbackType,
-    Source,
-    Zone,
-    MessageType,
-} from './models.js'
-
-import * as util from './util.js'
-
-import {
-    CommandError,
-    UnsupportedFeatureError,
-    RussoundError
-} from './exceptions.js'
-
-export class RussoundClient extends EventEmitter {
-    constructor(connectionHandler) {
+class RussoundClient extends EventEmitter {
+    constructor(connectionHandler, logger, config) {
         super();
         this.connectionHandler = connectionHandler;
         this._loop = null;
@@ -47,31 +24,37 @@ export class RussoundClient extends EventEmitter {
         this._futures = [];
         this._attemptReconnection = false;
         this._doStateUpdate = false;
+        this.config = config;
+        this.logger = logger;
+        this.enableDebugMode = config ? config?.enableDebugMode ?? false : false;
+        this.disableLogInfo = config?.disableLogInfo || false;
+        if (!logger) 
+            this.logger = new Logger(config ? this.enableDebugMode === true : false);
     }
 
-    async registerStateUpdateCallbacks(callback) {
+    registerStateUpdateCallbacks = async (callback) => {
         this._stateUpdateCallbacks.push(callback);
         if (this._doStateUpdate) {
-            await callback(this, CallbackType.STATE);
+            await callback(this, Models.CallbackType.STATE);
         }
     }
 
-    unregisterStateUpdateCallbacks(callback) {
+    unregisterStateUpdateCallbacks = (callback) => {
         this._stateUpdateCallbacks = this._stateUpdateCallbacks.filter(cb => cb !== callback);
     }
 
-    clearStateUpdateCallbacks() {
+    clearStateUpdateCallbacks = () => {
         this._stateUpdateCallbacks = [];
     }
 
-    async doStateUpdateCallbacks(callbackType = CallbackType.STATE) {
+    doStateUpdateCallbacks = async (callbackType = Models.CallbackType.STATE) => {
         if (!this._stateUpdateCallbacks.length) return;
         const callbacks = this._stateUpdateCallbacks.map(callback => callback(this, callbackType));
         await Promise.all(callbacks);
     }
 
-    async request(cmd) {
-        console.debug(`Sending command '${cmd}' to Russound client`);
+    request = async (cmd) => {
+        this.logDebug(`Sending command '${cmd}' to Russound client`);
         const future = new Promise((resolve, reject) => {
             this._futures.push({ resolve, reject });
         });
@@ -84,7 +67,7 @@ export class RussoundClient extends EventEmitter {
         return future;
     }
 
-    async connect() {
+    connect = async () => {
         if (!this.isConnected()) {
             this.connectResult = new Promise((resolve, reject) => {
                 this._reconnectTask = this._reconnectHandler(resolve, reject);
@@ -93,7 +76,7 @@ export class RussoundClient extends EventEmitter {
         return this.connectResult;
     }
 
-    async disconnect() {
+    disconnect = async () => {
         if (this.isConnected()) {
             this._attemptReconnection = false;
             //this.connectTask.cancel();
@@ -105,48 +88,48 @@ export class RussoundClient extends EventEmitter {
         }
     }
 
-    isConnected() {
+    isConnected = () => {
         return this.connectTask !== null && !this.connectTask.done;
     }
 
-    async _reconnectHandler(resolve, reject) {
+    _reconnectHandler = async (resolve, reject) => {
         let reconnectDelay = 0.5;
         while (true) {
             try {
                 this.connectTask = this._connectHandler(resolve, reject);
                 await this.connectTask;
             } catch (ex) {
-                console.error(ex);
+                this.logError(ex);
             }
-            await this.doStateUpdateCallbacks(CallbackType.CONNECTION);
+            await this.doStateUpdateCallbacks(Models.CallbackType.CONNECTION);
             if (!this._attemptReconnection) {
-                console.debug("Failed to connect to device on initial pass, skipping reconnect.");
+                this.logDebug("Failed to connect to device on initial pass, skipping reconnect.");
                 break;
             }
             reconnectDelay = Math.min(reconnectDelay * 2, 30);
-            console.debug(`Attempting reconnection to Russound device in ${reconnectDelay} seconds...`);
-            await delay(reconnectDelay * 1000);
+            this.logDebug(`Attempting reconnection to Russound device in ${reconnectDelay} seconds...`);
+            await TimerPromises.setTimeout(reconnectDelay * 1000);
         }
     }
 
-    async _connectHandler(resolve, reject) {
+    _connectHandler = async(resolve, reject) => {
         const handlerTasks = new Set();
         try {
             this._doStateUpdate = false;
             await this.connectionHandler.connect();
             handlerTasks.add(this.consumerHandler(this.connectionHandler));
             this.rioVersion = await this.request("VERSION");
-            if (!util.isFwVersionHigher(this.rioVersion, MINIMUM_API_SUPPORT)) {
-                throw new UnsupportedFeatureError(`Russound RIO API v${this.rioVersion} is not supported. The minimum supported version is v${MINIMUM_API_SUPPORT}`);
+            if (!Utils.isFwVersionHigher(this.rioVersion, Constants.MINIMUM_API_SUPPORT)) {
+                throw new Models.UnsupportedFeatureError(`Russound RIO API v${this.rioVersion} is not supported. The minimum supported version is v${MINIMUM_API_SUPPORT}`);
             }
-            console.info(`Connected (Russound RIO v${this.rioVersion})`);
+            this.logInfo(`Connected (Russound RIO v${this.rioVersion})`);
             const parentController = await this._loadController(1);
             if (!parentController) {
-                throw new RussoundError("No primary controller found.");
+                throw new Exceptions.RussoundError("No primary controller found.");
             }
             this.controllers[1] = parentController;
-            if (util.isRnetCapable(parentController.controllerType)) {
-                for (let controllerId = 2; controllerId <= MAX_RNET_CONTROLLERS; controllerId++) {
+            if (Utils.isRnetCapable(parentController.controllerType)) {
+                for (let controllerId = 2; controllerId <= Constants.MAX_RNET_CONTROLLERS; controllerId++) {
                     const controller = await this._loadController(controllerId);
                     if (controller) {
                         this.controllers[controllerId] = controller;
@@ -156,9 +139,9 @@ export class RussoundClient extends EventEmitter {
             const subscribeStateUpdates = new Set([
                 this.subscribe(this._asyncHandleSystem, "System")
             ]);
-            for (let sourceId = 1; sourceId < MAX_SOURCE; sourceId++) {
+            for (let sourceId = 1; sourceId < Constants.MAX_SOURCE; sourceId++) {
                 try {
-                    const deviceStr = util.sourceDeviceStr(sourceId);
+                    const deviceStr = Utils.sourceDeviceStr(sourceId);
                     const name = await this.getVariable(deviceStr, "name");
                     if (name) {
                         subscribeStateUpdates.add(this.subscribe(this._asyncHandleSource, deviceStr));
@@ -167,14 +150,22 @@ export class RussoundClient extends EventEmitter {
                     break;
                 }
             }
+
             for (const [controllerId, controller] of Object.entries(this.controllers)) {
-                for (let zoneId = 1; zoneId <= util.getMaxZones(controller.controllerType); zoneId++) {
+                for (let zoneId = 1; zoneId <= Utils.getMaxZones(controller.controllerType); zoneId++) {
                     try {
-                        const deviceStr = util.zoneDeviceStr(controllerId, zoneId);
-                        const name = await this.getVariable(deviceStr, "name");
-                        if (name) {
-                            subscribeStateUpdates.add(this.subscribe(this._asyncHandleZone, deviceStr));
+                        if (!this.config || (this.config.zones[`${zoneId}`]?.enabled ?? true === true))
+                            {
+                                this.logInfo(`Zone ${zoneId} Enabled`);
+
+                            const deviceStr = Utils.zoneDeviceStr(controllerId, zoneId);
+                            const name = await this.getVariable(deviceStr, "name");
+                            if (name) {
+                                    subscribeStateUpdates.add(this.subscribe(this._asyncHandleZone, deviceStr));
+                            }
                         }
+                        else
+                            this.logDebug(`Zone ${zoneId} Disabled`);
                     } catch (e) {
                         break;
                     }
@@ -183,8 +174,8 @@ export class RussoundClient extends EventEmitter {
             const subscribeTasks = Array.from(subscribeStateUpdates);
             await Promise.all(subscribeTasks);
             this._doStateUpdate = true;
-            await this.doStateUpdateCallbacks(CallbackType.CONNECTION);
-            await delay(200);
+            await this.doStateUpdateCallbacks(Models.CallbackType.CONNECTION);
+            await TimerPromises.setTimeout(200);
             this._attemptReconnection = true;
             if (!resolve.done) {
                 resolve(true);
@@ -195,7 +186,7 @@ export class RussoundClient extends EventEmitter {
             if (!resolve.done) {
                 reject(ex);
             }
-            console.error(ex);
+            this.logError(ex);
         } finally {
             for (const task of handlerTasks) {
                 if (!task.done) {
@@ -221,37 +212,37 @@ export class RussoundClient extends EventEmitter {
         }
     }
 
-    static processResponse(response) {
+    static processResponse(response, logger) {
         try {
             const trimmedResponse = response.trim();
             if (trimmedResponse.length === 1 && trimmedResponse[0] === "S") {
-                return new RussoundMessage(MessageType.STATE, null, null, null);
+                return new Models.RussoundMessage(Models.MessageType.STATE, null, null, null);
             }
             const [tag, payload] = [trimmedResponse[0], trimmedResponse.slice(2)];
 
             if (tag === "E") {
-                console.debug(`Device responded with error: ${payload}`);
-                return new RussoundMessage(tag, null, null, payload);
+                logger.debug(`Device responded with error: ${payload}`);
+                return new Models.RussoundMessage(tag, null, null, payload);
             }
-            const m = RESPONSE_REGEX.exec(payload);
+            const m = Constants.RESPONSE_REGEX.exec(payload);
             if (!m) {
-                return new RussoundMessage(tag, null, null, null);
+                return new Models.RussoundMessage(tag, null, null, null);
             }
-            return new RussoundMessage(tag, m[1] || null, m[2], m[3]);
+            return new Models.RussoundMessage(tag, m[1] || null, m[2], m[3]);
         } catch (e) {
-            console.warn(`Failed to decode Russound response ${trimmedResponse}`, e);
+            logger.warn(`Failed to decode Russound response ${trimmedResponse}`, e);
             return null;
         }
     }
 
-    async consumerHandler(handler) {
+    consumerHandler = async (handler) => {
         try {
             for await (const rawMsg of handler.reader) {
                 var strResponse = new TextDecoder('iso-8859-1').decode(rawMsg);
                 this._incompleteData = this?._incompleteData ?? ''
                 if ( this._incompleteData != '')
                 {
-                    console.log("Incomplete Data", this._incompleteData)
+                    this.logDebug("Incomplete Data", this._incompleteData)
                     strResponse = this._incompleteData + strResponse;
                     this._incompleteData = null;
                 }
@@ -259,26 +250,26 @@ export class RussoundClient extends EventEmitter {
 
                 if (!strResponse.toString().endsWith('\r\n')) {
                     this._incompleteData = responses.pop();
-                    console.warn(`Incomplete data detected '${this._incompleteData}'`);
+                    this.logWarn(`Incomplete data detected '${this._incompleteData}'`);
                 }
 
                 for (const response of responses)
                 {
-                    const msg = RussoundClient.processResponse(response);
+                    const msg = RussoundClient.processResponse(response, this.logger);
                     if (msg) {
-                        console.debug('recv (%j)', msg);
+                        this.logInfo(`Response: (%j)`, msg);
                         if (msg.type === "S" && this._futures.length) {
                             const { resolve } = this._futures.shift();
                             resolve(msg.value);
                         } else if (msg.type === "E" && this._futures.length) {
                             const { reject } = this._futures.shift();
-                            reject(new CommandError());
+                            reject(new Exceptions.CommandError());
                         }
                         if (msg.branch && msg.leaf && msg.type === "N") {
-                            util.mapRioToDict(this.state, msg.branch, msg.leaf, msg.value);
+                            Utils.mapRioToDict(this.state, msg.branch, msg.leaf, msg.value);
                             const subscription = this._subscriptions[msg.branch];
                             if (subscription) {
-                                await subscription(this);
+                                await subscription();
                             }
                         }
                     }
@@ -289,21 +280,21 @@ export class RussoundClient extends EventEmitter {
         }
     }
 
-    async _keepAlive() {
+    _keepAlive = async () => {
         while (true) {
-            await delay(KEEP_ALIVE_INTERVAL);
-            console.debug("Sending keep alive to device");
+            await TimerPromises.setTimeout(Constants.KEEP_ALIVE_INTERVAL);
+            this.logDebug("Sending keep alive to device");
             try {
                 await this.request("VERSION");
             } catch (e) {
-                console.warn("Keep alive request to the Russound device timed out");
+                this.logWarn("Keep alive request to the Russound device timed out");
                 break;
             }
         }
-        console.debug("Ending keep alive task to attempt reconnection");
+        this.logDebug("Ending keep alive task to attempt reconnection");
     }
 
-    async subscribe(callback, branch) {
+    subscribe = async (callback, branch) => {
         this._subscriptions[branch] = callback;
         try {
             await this.request(`WATCH ${branch} ON`);
@@ -313,47 +304,47 @@ export class RussoundClient extends EventEmitter {
         }
     }
 
-    async _asyncHandleSystem(controller) {
-        if (controller._doStateUpdate) {
-            await controller.doStateUpdateCallbacks();
+    _asyncHandleSystem = async () => {
+        if (this._doStateUpdate) {
+            await this.doStateUpdateCallbacks();
         }
     }
 
-    async _asyncHandleSource(controller) {
-        for (const [sourceId, sourceData] of Object.entries(controller.state["S"])) {
-            const source = new Source(sourceData);
-            source.client = controller;
-            controller.sources[sourceId] = source;
+    _asyncHandleSource = async () => {
+        for (const [sourceId, sourceData] of Object.entries(this.state["S"])) {
+            const source = new Models.Source(sourceData);
+            source.client = this;
+            this.sources[sourceId] = source;
         }
-        if (controller._doStateUpdate) {
-            await controller.doStateUpdateCallbacks();
+        if (this._doStateUpdate) {
+            await this.doStateUpdateCallbacks();
         }
     }
 
-    async _asyncHandleZone(controller) {
-        for (const [controllerId, controllerData] of Object.entries(controller.state["C"])) {
+    _asyncHandleZone = async () => {
+        for (const [controllerId, controllerData] of Object.entries(this.state["C"])) {
             for (const [zoneId, zoneData] of Object.entries(controllerData["Z"])) {
                 const zone = new ZoneControlSurface(zoneData);
-                zone.client = controller;
-                zone.deviceStr = util.zoneDeviceStr(controllerId, zoneId);
-                controller.controllers[controllerId].zones[zoneId] = zone;
+                zone.client = this;
+                zone.deviceStr = Utils.zoneDeviceStr(controllerId, zoneId);
+                this.controllers[controllerId].zones[zoneId] = zone;
             }
         }
-        if (controller._doStateUpdate) {
-            await controller.doStateUpdateCallbacks();
+        if (this._doStateUpdate) {
+            await this.doStateUpdateCallbacks();
         }
     }
 
-    async setVariable(deviceStr, key, value) {
+    setVariable = async (deviceStr, key, value) => {
         return this.request(`SET ${deviceStr}.${key}="${value}"`);
     }
 
-    async getVariable(deviceStr, key) {
+    getVariable = async (deviceStr, key) => {
         return this.request(`GET ${deviceStr}.${key}`);
     }
 
-    async _loadController(controllerId) {
-        const deviceStr = util.controllerDeviceStr(controllerId);
+    _loadController = async (controllerId) => {
+        const deviceStr = Utils.controllerDeviceStr(controllerId);
         try {
             const controllerType = await this.getVariable(deviceStr, "type");
             if (!controllerType) return null;
@@ -364,21 +355,69 @@ export class RussoundClient extends EventEmitter {
                 // Ignore CommandError
             }
             let firmwareVersion = null;
-            if (util.isFeatureSupported(this.rioVersion, FeatureFlag.PROPERTY_FIRMWARE_VERSION)) {
+            if (Utils.isFeatureSupported(this.rioVersion, Constants.FeatureFlag.PROPERTY_FIRMWARE_VERSION)) {
                 firmwareVersion = await this.getVariable(deviceStr, "firmwareVersion");
             }
             const controller = new Controller(controllerId, controllerType, this, deviceStr, macAddress, firmwareVersion, {});
             return controller;
         } catch (e) {
-            console.error(e);
+            this.logError(e);
             return null;
         }
+    }
+
+    logMessage = (message) => {
+        var prefix = '';  
+        if (this.logger instanceof Logger)
+          prefix = `[${this.config ? this.config?.name : "" ?? "Russound AIO"}] `;
+        return "[API] " + prefix + message;;
+    }
+
+    log = (message, ...args) => {
+        if (this.logger)
+            this.logger.log(this.logMessage(message), ...args);
+        else
+            console.log(this.logMessage(message), ...args)
+    }
+
+    logInfo = (message, ...args) => {
+        if (!this.disableLogInfo)
+        {
+            if (this.logger)
+                this.logger.info(this.logMessage(message), ...args);
+            else
+                console.log('[Info]' + this.logMessage(message), ...args)
+        }
+    }
+
+    logDebug = (message, ...args) => {
+        if (this.logger)
+          if (this.enableDebugMode)
+            this.logger.info(this.logMessage(message), ...args);
+          else  
+            this.logger.debug(this.logMessage(message), ...args);
+        else
+            console.log('[Debug]' + this.logMessage(message), ...args)
+    }
+
+    logWarn = (message, ...args) => {
+        if (this.logger)
+            this.logger.warn(this.logMessage(message), ...args);
+        else
+            console.log('[Warn]' + this.logMessage(message), ...args)
+    }
+
+    logError = (message, ...args) => {
+        if (this.logger)
+            this.logger.error(this.logMessage(message), ...args);
+        else
+            console.log('[Error]' + this.logMessage(message), ...args)
     }
 
     get supportedFeatures() {
         const flags = [];
         for (const [key, value] of Object.entries(FLAGS_BY_VERSION)) {
-            if (util.isFwVersionHigher(this.rioVersion, key)) {
+            if (Utils.isFwVersionHigher(this.rioVersion, key)) {
                 flags.push(...value);
             }
         }
@@ -393,67 +432,75 @@ class AbstractControlSurface {
     }
 }
 
-class ZoneControlSurface extends Zone {
-    async sendEvent(eventName, ...args) {
+class ZoneControlSurface extends Models.Zone {
+    sendEvent = async (eventName, ...args) => {
         const argsStr = args.join(' ');
         const cmd = `EVENT ${this.deviceStr}!${eventName} ${argsStr}`;
         return this.client.request(cmd);
     }
 
-    fetchCurrentSource() {
+    fetchCurrentSource = () => {
         const currentSource = parseInt(this.current_source, 10);
         return this.client.sources[currentSource];
     }
 
-    async mute() {
+    keyRelease = async (command) => {
+        return this.sendEvent("KeyRelease", command)
+    }
+
+    keyPress= async (...args) => {
+        return this.sendEvent("KeyPress", ...args)
+    }
+
+    zoneMute = async () => {
         return this.sendEvent("ZoneMuteOn");
     }
 
-    async unmute() {
+    zoneUnmute = async () => {
         return this.sendEvent("ZoneMuteOff");
     }
 
-    async setVolume(volume) {
-        return this.sendEvent("KeyPress", "Volume", volume);
+    setVolume = async (volume) => {
+        return this.keyPress("Volume", volume);
     }
 
-    async volumeUp() {
-        return this.sendEvent("KeyPress", "VolumeUp");
+    volumeUp = async () => {
+        return this.keyPress("VolumeUp");
     }
 
-    async volumeDown() {
-        return this.sendEvent("KeyPress", "VolumeDown");
+    volumeDown = async () => {
+        return this.keyPress("VolumeDown");
     }
 
-    async previous() {
-        return this.sendEvent("KeyPress", "Previous");
+    previous = async () => {
+        return this.keyPress("Previous");
     }
 
-    async next() {
-        return this.sendEvent("KeyPress", "Next");
+    next = async () => {
+        return this.keyPress("Next");
     }
 
-    async stop() {
-        return this.sendEvent("KeyPress", "Stop");
+    stop = async () => {
+        return this.keyPress("Stop");
     }
 
-    async pause() {
-        return this.sendEvent("KeyPress", "Pause");
+    pause = async () => {
+        return this.keyPress("Pause");
     }
 
-    async play() {
-        return this.sendEvent("KeyPress", "Play");
+    play = async () => {
+        return this.keyPress("Play");
     }
 
-    async zoneOn() {
+    zoneOn = async () => {
         return this.sendEvent("ZoneOn");
     }
 
-    async zoneOff() {
+    zoneOff = async () => {
         return this.sendEvent("ZoneOff");
     }
 
-    async selectSource(source) {
+    selectSource =  async (source) => {
         return this.sendEvent("SelectSource", source);
     }
 }
@@ -462,6 +509,7 @@ class Controller {
     constructor(controllerId, controllerType, client, deviceStr, macAddress, firmwareVersion, zones = {}) {
         this.controllerId = controllerId;
         this.controllerType = controllerType;
+        this.manufacturer = 'Russound';
         this.client = client;
         this.deviceStr = deviceStr;
         this.macAddress = macAddress;
@@ -470,3 +518,4 @@ class Controller {
     }
 }
 
+module.exports = RussoundClient

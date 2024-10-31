@@ -1,8 +1,6 @@
-import { EventEmitter } from 'events';
-import { DEFAULT_PORT } from './const.js'
-import { PromiseSocket } from "promise-socket"
-
-const _LOGGER = console; // Using console for logging
+const EventEmitter = require('events');
+const Constants = require('./const');
+const Logger = require('./logger');
 
 class RussoundConnectionHandler extends EventEmitter {
     constructor() {
@@ -23,16 +21,23 @@ class RussoundConnectionHandler extends EventEmitter {
     }
 }
 
-export class RussoundTcpConnectionHandler extends RussoundConnectionHandler {
-    constructor(host, port = DEFAULT_PORT) {
+class RussoundTcpConnectionHandler extends RussoundConnectionHandler {
+    constructor(host, port, logger, config) {
         super();
         this.host = host;
-        this.port = port;
+        this.port = port ?? Constants.DEFAULT_PORT;
         this.writer = null;
+        this.config = config;
+        this.logger = logger;
+        if (!logger) 
+            this.logger = new Logger(config ? config['enableDebugMode'] === true : false);
     }
 
     async connect() {
-        _LOGGER.debug(`Connecting to ${this.host}:${this.port}`);
+        this.logger.debug(`Connecting to ${this.host}:${this.port}`);
+
+        const PromiseSocket = await import('promise-socket').then(ps => ps.default)
+
         const promiseSocket = new PromiseSocket();
         await promiseSocket.connect(this.port, this.host);
 
@@ -48,12 +53,12 @@ export class RussoundTcpConnectionHandler extends RussoundConnectionHandler {
         });
 
         client.on('close', (err) => {
-            _LOGGER.info('Connection close:', err);
+            this.logger.info('Connection close:', err);
             // this.connected = false;
         });
 
         client.on('error', (err) => {
-            _LOGGER.error('Connection error:', err);
+            this.logger.error('Connection error:', err);
         });
 
     }
@@ -65,3 +70,5 @@ export class RussoundTcpConnectionHandler extends RussoundConnectionHandler {
     }
 }
 
+
+module.exports = RussoundTcpConnectionHandler;

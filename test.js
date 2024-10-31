@@ -1,6 +1,6 @@
 //import { RussoundError, CommandError, UncachedVariableError, UnsupportedFeatureError, UnsupportedRussoundVersionError } from './exceptions';
-import { RussoundTcpConnectionHandler }  from './connection.js';
-import { RussoundClient } from './rio.js';
+const RussoundTcpConnectionHandler = require('./connection');
+const RussoundClient = require('./rio');
 //import { CallbackType } from './models.js';
 
 

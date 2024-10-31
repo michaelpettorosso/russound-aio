@@ -41,10 +41,11 @@
 //    console.log("Zones", client.controllers[1].zones);
 //}
 // Importing necessary modules
-import RussoundTcpConnectionHandler from './connection.js';
-import RussoundClient from './rio.js';
+const RussoundTcpConnectionHandler = require('./connection');
+const RussoundClient = require('./rio');
 
 module.exports = {
     RussoundTcpConnectionHandler,
     RussoundClient
 };
+

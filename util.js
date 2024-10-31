@@ -1,13 +1,13 @@
 // Asynchronous JavaScript client for Russound RIO.
 
-import { FLAGS_BY_VERSION } from './const.js';
-import { UnsupportedFeatureError } from './exceptions.js';
+const Constants = require('./const');
+const Exceptions = require('./exceptions');
 
 const _fw_pattern = /^(?<major>\d{1,2})\.(?<minor>\d{2})\.(?<patch>\d{2})$/;
 
 function versionsByFlags() {
     var retObj = {};
-    for (const [version, flags] of Object.entries(FLAGS_BY_VERSION))
+    for (const [version, flags] of Object.entries(Constants.FLAGS_BY_VERSION))
       for (var flag of flags)
         retObj[flag] = version;
     return retObj;  
@@ -16,7 +16,7 @@ function versionsByFlags() {
 function raiseUnsupportedFeature(apiVer, flag) {
     if (!isFeatureSupported(apiVer, flag)) {
         const err = `Russound feature ${flag} not supported in api v${apiVer}`;
-        throw new UnsupportedFeatureError(err);
+        throw new Exceptions.UnsupportedFeatureError(err);
     }
 }
 
@@ -101,7 +101,7 @@ function mapRioToDict(state, branch, leaf, value) {
     current[leaf] = value;
 }
 
-export {
+module.exports = {
     raiseUnsupportedFeature,
     isFeatureSupported,
     isFwVersionHigher,

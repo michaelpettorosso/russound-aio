@@ -1,18 +1,12 @@
 // Asynchronous JavaScript client for Russound RIO.
 
 export const MINIMUM_API_SUPPORT = "1.05.00";
-
 export const DEFAULT_PORT = 9621;
-
 export const RECONNECT_DELAY = 5000;
 export const TIMEOUT = 5000;
-
 export const KEEP_ALIVE_INTERVAL = 60000;
-
 export const MAX_SOURCE = 17;
-
 export const MAX_RNET_CONTROLLERS = 1;
-
 export const RESPONSE_REGEX = /(?:(\w+(?:\[\d+])?(?:\.\w+(?:\[\d+])?)*)\.)?(\w+)="([^"]*)"/;
 
 export class FeatureFlag {
