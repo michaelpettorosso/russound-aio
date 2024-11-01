@@ -1,6 +1,8 @@
 //import { RussoundError, CommandError, UncachedVariableError, UnsupportedFeatureError, UnsupportedRussoundVersionError } from './exceptions';
 const RussoundTcpConnectionHandler = require('./connection');
 const RussoundClient = require('./rio');
+const { mapRioToDict } = require('./util');
+
 //import { CallbackType } from './models.js';
 
 
@@ -29,7 +31,14 @@ async function main() {
             console.log(`Found zone ${z_id} - ${zone.name}`);
         }
     }
-    //console.log("State", client.state);
+    // var msg = {"type":"N","branch":"C[1].Z[2]","leaf":"volume","value":"12"};
+
+    // console.log("msg", msg);
+    // var state = { C: { '1' : { Z: { '2': { volume: '11' } }}}};
+
+    // mapRioToDict(state, msg.branch, msg.leaf, msg.value);
+    
+    // console.log("State", state['C']['1']['Z']);
 
     // // Play media using the unit's front controls or Russound app
     await new Promise(resolve => setTimeout(resolve, 30000));

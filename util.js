@@ -75,30 +75,34 @@ function isRnetCapable(model) {
 }
 
 function mapRioToDict(state, branch, leaf, value) {
-    const path = branch.match(/\w+\[?\d*]?/g);
-    let current = state;
-    for (const part of path) {
-        const match = part.match(/(\w+)\[(\d+)]/);
-        if (match) {
-            const [, key, index] = match;
-            const indexNum = parseInt(index);
-            if (!(key in current)) {
-                current[key] = {};
+    try {
+        const path = branch.match(/\w+\[?\d*]?/g);
+        let current = state;
+        for (const part of path) {
+            const match = part.match(/(\w+)\[(\d+)]/);
+            if (match) {
+                const [, key, index] = match;
+                const indexNum = parseInt(index);
+                if (!(key in current)) {
+                    current[key] = {};
+                }
+                if (!(indexNum in current[key])) {
+                    current[key][indexNum] = {};
+                }
+                current = current[key][indexNum];
+            } else {
+                if (!(part in current)) {
+                    current[part] = {};
+                }
+                current = current[part];
             }
-            if (!(indexNum in current[key])) {
-                current[key][indexNum] = {};
-            }
-            current = current[key][indexNum];
-        } else {
-            if (!(part in current)) {
-                current[part] = {};
-            }
-            current = current[part];
         }
+    
+        // Set the leaf and value in the final dictionary location
+        current[leaf] = value;
+    } catch (error) {
+        throw new Exceptions.UnsupportedFeatureError(error);
     }
-
-    // Set the leaf and value in the final dictionary location
-    current[leaf] = value;
 }
 
 module.exports = {

@@ -55,21 +55,19 @@ The Russound App doesn't handle this, I've added the capability to manage
 | Fields                 | Description                                                        | Default                                                                   | Required |
 |------------------------|--------------------------------------------------------------------|---------------------------------------------------------------------------|----------|
 | name                   | Name to use for this Russound Controller.                          | MCA-66                                                                    | No       |
-| ip                     | IP address of your Russound Controller.                            |                                                                           | Yes      |
+| host                   | Host IP address of your Russound Controller.                            |                                                                           | Yes      |
 
 `zones` zones parameters:
 | Fields                 | Description                                                        | Default                                                                   | Required |
 |------------------------|--------------------------------------------------------------------|---------------------------------------------------------------------------|----------|
 | name                   | Name of this zone configured on the Russound Controller.           |                                                                           | Yes      |
-| display_name           | Name that you want the zone to display.                            | if blank it is name                                                       | No       |
 | sources                | List of sources to add to zone.                                    |                                                                           | No       |
-| enable                 | Hides zone from Homekit                                            | true                                                                      | No       |
+| enabled                | Hides zone from Homekit                                            | true                                                                      | No       |
 
 `sources` sources parameters:
 | Fields                 | Description                                                        | Default                                                                   | Required |
 |------------------------|--------------------------------------------------------------------|---------------------------------------------------------------------------|----------|
 | name                   | Name of this source configured on the Russound Controller.         |                                                                           | Yes      |
-| display_name           | Name that you want the source name to display                      | if blank it is name                                                       | No       |
 
 # Troubleshooting
 

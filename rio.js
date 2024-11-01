@@ -155,13 +155,13 @@ class RussoundClient extends EventEmitter {
                 for (let zoneId = 1; zoneId <= Utils.getMaxZones(controller.controllerType); zoneId++) {
                     try {
                         if (!this.config || (this.config.zones[`${zoneId}`]?.enabled ?? true === true))
-                            {
-                                this.logInfo(`Zone ${zoneId} Enabled`);
+                        {
+                            this.logInfo(`Zone ${zoneId} Enabled`);
 
                             const deviceStr = Utils.zoneDeviceStr(controllerId, zoneId);
                             const name = await this.getVariable(deviceStr, "name");
                             if (name) {
-                                    subscribeStateUpdates.add(this.subscribe(this._asyncHandleZone, deviceStr));
+                              subscribeStateUpdates.add(this.subscribe(this._asyncHandleZone, deviceStr));
                             }
                         }
                         else
@@ -173,20 +173,17 @@ class RussoundClient extends EventEmitter {
             }
             const subscribeTasks = Array.from(subscribeStateUpdates);
             await Promise.all(subscribeTasks);
+
             this._doStateUpdate = true;
             await this.doStateUpdateCallbacks(Models.CallbackType.CONNECTION);
             await TimerPromises.setTimeout(200);
             this._attemptReconnection = true;
-            if (!resolve.done) {
-                resolve(true);
-            }
+            resolve(true);
             handlerTasks.add(this._keepAlive());
             await Promise.race(handlerTasks);
         } catch (ex) {
-            if (!resolve.done) {
-                reject(ex);
-            }
             this.logError(ex);
+            reject(ex);
         } finally {
             for (const task of handlerTasks) {
                 if (!task.done) {
@@ -221,7 +218,7 @@ class RussoundClient extends EventEmitter {
             const [tag, payload] = [trimmedResponse[0], trimmedResponse.slice(2)];
 
             if (tag === "E") {
-                logger.debug(`Device responded with error: ${payload}`);
+                logger?.debug(`Device responded with error: ${payload}`);
                 return new Models.RussoundMessage(tag, null, null, payload);
             }
             const m = Constants.RESPONSE_REGEX.exec(payload);
@@ -230,7 +227,7 @@ class RussoundClient extends EventEmitter {
             }
             return new Models.RussoundMessage(tag, m[1] || null, m[2], m[3]);
         } catch (e) {
-            logger.warn(`Failed to decode Russound response ${trimmedResponse}`, e);
+            logger?.warn(`Failed to decode Russound response ${trimmedResponse}`, e);
             return null;
         }
     }
