@@ -14,6 +14,7 @@ class RussoundClient extends EventEmitter {
         this._loop = null;
         this._subscriptions = {};
         this.connectResult = null;
+        this.connected = false;
         this.connectTask = null;
         this._reconnectTask = null;
         this._stateUpdateCallbacks = [];
@@ -79,17 +80,12 @@ class RussoundClient extends EventEmitter {
     disconnect = async () => {
         if (this.isConnected()) {
             this._attemptReconnection = false;
-            //this.connectTask.cancel();
-            try {
-                await this.connectTask;
-            } catch (e) {
-                if (e.name !== 'CanceledError') throw e;
-            }
         }
     }
 
     isConnected = () => {
-        return this.connectTask !== null && !this.connectTask.done;
+        this.logDebug('isConnected', this.connectTask, this.connected);
+        return this.connectTask !== null && this.connected;
     }
 
     _reconnectHandler = async (resolve, reject) => {
@@ -122,6 +118,7 @@ class RussoundClient extends EventEmitter {
             if (!Utils.isFwVersionHigher(this.rioVersion, Constants.MINIMUM_API_SUPPORT)) {
                 throw new Models.UnsupportedFeatureError(`Russound RIO API v${this.rioVersion} is not supported. The minimum supported version is v${MINIMUM_API_SUPPORT}`);
             }
+            this.connected = true;
             this.logInfo(`Connected (Russound RIO v${this.rioVersion})`);
             const parentController = await this._loadController(1);
             if (!parentController) {
@@ -154,7 +151,7 @@ class RussoundClient extends EventEmitter {
             for (const [controllerId, controller] of Object.entries(this.controllers)) {
                 for (let zoneId = 1; zoneId <= Utils.getMaxZones(controller.controllerType); zoneId++) {
                     try {
-                        if (!this.config || (this.config.zones[`${zoneId}`]?.enabled ?? true === true))
+                        if ((this.configuredZone(`${zoneId}`)?.enabled ?? true) === true)
                         {
                             this.logInfo(`Zone ${zoneId} Enabled`);
 
@@ -171,11 +168,14 @@ class RussoundClient extends EventEmitter {
                     }
                 }
             }
+            //run all subscription tasks
             const subscribeTasks = Array.from(subscribeStateUpdates);
             await Promise.all(subscribeTasks);
 
+            //update 
             this._doStateUpdate = true;
             await this.doStateUpdateCallbacks(Models.CallbackType.CONNECTION);
+
             await TimerPromises.setTimeout(200);
             this._attemptReconnection = true;
             resolve(true);
@@ -185,29 +185,17 @@ class RussoundClient extends EventEmitter {
             this.logError(ex);
             reject(ex);
         } finally {
-            for (const task of handlerTasks) {
-                if (!task.done) {
-                    //task.cancel();
-                }
-            }
             while (this._futures.length) {
                 const { resolve, reject } = this._futures.shift();
                 reject(new Error('Cancelled'));
             }
             this._doStateUpdate = false;
-            const closeout = new Set(handlerTasks);
-            if (closeout.size) {
-                const closeoutTask = Promise.all(closeout);
-                while (!closeoutTask.done) {
-                    try {
-                        await closeoutTask;
-                    } catch (e) {
-                        if (e.name !== 'CanceledError') throw e;
-                    }
-                }
-            }
         }
     }
+
+    configuredZone = (zoneId) => {
+        return this.config?.zones?.find(zone => zone.id === zoneId);
+     }
 
     static processResponse(response, logger) {
         try {
@@ -506,10 +494,10 @@ class Controller {
     constructor(controllerId, controllerType, client, deviceStr, macAddress, firmwareVersion, zones = {}) {
         this.controllerId = controllerId;
         this.controllerType = controllerType;
-        this.manufacturer = 'Russound';
         this.client = client;
         this.deviceStr = deviceStr;
         this.macAddress = macAddress;
+        this.manufacturer = 'Russound';
         this.firmwareVersion = firmwareVersion;
         this.zones = zones;
     }
