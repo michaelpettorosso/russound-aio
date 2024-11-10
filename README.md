@@ -34,11 +34,11 @@ Example code :
 ```
 
 ### Config Explanation:
-The names Zone1, Zone2, Zone3, Zone4, Zone5 and Zone6 should match the Zone names given in the Russound Controller configuration (the names in the Russound App)
+The id of Zone1, Zone2, Zone3, Zone4, Zone5 and Zone6 should match the Zone names given in the Russound Controller configuration (the order in the Russound App)
 
 The names Source1, Source2, Source3, Source4, Source5 and Source6 should match the Source names given in the Russound Controller configuration (the names in the Russound App)
   
-  Any non configured sources identified as 'N/A' will be ignored
+  Any non configured sources will be ignored
 
 With this configuration you can define which sources are attached to which zones, the Russound API doesn't identify the configuration correctly.
 That is, if different sources are selected for different zones in the Russound Controller configuration there is no way to determine this through the API. 
@@ -54,20 +54,21 @@ The Russound App doesn't handle this, I've added the capability to manage
 
 | Fields                 | Description                                                        | Default                                                                   | Required |
 |------------------------|--------------------------------------------------------------------|---------------------------------------------------------------------------|----------|
-| name                   | Name to use for this Russound Controller.                          | MCA-66                                                                    | No       |
-| host                   | Host IP address of your Russound Controller.                            |                                                                           | Yes      |
+| name                   | Name to use for this Russound controller.                          | MCA-66                                                                    | No       |
+| host                   | Host IP address of your Russound controller.                       |                                                                           | Yes      |
 
 `zones` zones parameters:
 | Fields                 | Description                                                        | Default                                                                   | Required |
 |------------------------|--------------------------------------------------------------------|---------------------------------------------------------------------------|----------|
-| name                   | Name of this zone configured on the Russound Controller.           |                                                                           | Yes      |
-| sources                | List of sources to add to zone.                                    |                                                                           | No       |
+| id                     | The Id of this zone as it appears in Russound.                     |                                                                           | Yes       |
+| name                   | Name of this zone configured on the Russound controller.           |                                                                           | No      |
+| sources                | List of source names to add to zone.                               |                                                                           | No       |
 | enabled                | Hides zone from Homekit                                            | true                                                                      | No       |
 
 `sources` sources parameters:
 | Fields                 | Description                                                        | Default                                                                   | Required |
 |------------------------|--------------------------------------------------------------------|---------------------------------------------------------------------------|----------|
-| name                   | Name of this source configured on the Russound Controller.         |                                                                           | Yes      |
+| _                      | Name of this source configured on the Russound controller.         |                                                                           | Yes      |
 
 # Troubleshooting
 

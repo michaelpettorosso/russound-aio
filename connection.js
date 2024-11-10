@@ -6,7 +6,6 @@ class RussoundConnectionHandler extends EventEmitter {
     constructor() {
         super();
         this.reader = null;
-        // this.connected = false;
     }
 
     async send(cmd) {
@@ -41,8 +40,6 @@ class RussoundTcpConnectionHandler extends RussoundConnectionHandler {
         const promiseSocket = new PromiseSocket();
         await promiseSocket.connect(this.port, this.host);
 
-        // this.connected = true;
-
         const client = promiseSocket.socket; 
         this.writer = client;
         this.reader = client; // In Node.js, you can read from the socket directly
@@ -54,7 +51,6 @@ class RussoundTcpConnectionHandler extends RussoundConnectionHandler {
 
         client.on('close', (err) => {
             this.logger.info('Connection close:', err);
-            // this.connected = false;
         });
 
         client.on('error', (err) => {
