@@ -27,10 +27,10 @@ class RussoundClient extends EventEmitter {
         this._doStateUpdate = false;
         this.config = config;
         this.logger = logger;
-        this.enableDebugMode = config ? config?.enableDebugMode ?? false : false;
-        this.disableLogInfo = config?.disableLogInfo || false;
+        this.enableDebugMode = config?.enableDebugMode || false;
+        this.disableLogInfo = config?.disableLogInfo || true;
         if (!logger) 
-            this.logger = new Logger(config ? this.enableDebugMode === true : false);
+            this.logger = new Logger(config?.enableDebugMode == true);
     }
 
     registerStateUpdateCallbacks = async (callback) => {
@@ -242,7 +242,7 @@ class RussoundClient extends EventEmitter {
                 {
                     const msg = RussoundClient.processResponse(response, this.logger);
                     if (msg) {
-                        this.logInfo(`Response: (%j)`, msg);
+                        this.logDebug(`Response: (%j)`, msg);
                         if (msg.type === "S" && this._futures.length) {
                             const { resolve } = this._futures.shift();
                             resolve(msg.value);
@@ -382,6 +382,7 @@ class RussoundClient extends EventEmitter {
           else  
             this.logger.debug(this.logMessage(message), ...args);
         else
+          if (this.enableDebugMode)
             console.log('[Debug]' + this.logMessage(message), ...args)
     }
 

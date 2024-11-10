@@ -29,7 +29,7 @@ class RussoundTcpConnectionHandler extends RussoundConnectionHandler {
         this.config = config;
         this.logger = logger;
         if (!logger) 
-            this.logger = new Logger(config ? config['enableDebugMode'] === true : false);
+            this.logger = new Logger(config ? config['enableDebugMode'] == true : false);
     }
 
     async connect() {
